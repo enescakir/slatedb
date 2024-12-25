@@ -1,10 +1,13 @@
 name: Nightly Benchmarks
 
 on:
-  schedule:
-    # Run at midnight Pacific (8 AM UTC)
-    - cron: '0 8 * * *'
-  workflow_dispatch:  # Allow manual trigger
+  # schedule:
+  #   # Run at midnight Pacific (8 AM UTC)
+  #   - cron: '0 8 * * *'
+  # workflow_dispatch:  # Allow manual trigger
+  push:
+    branches:
+      - ubicloud-runner
 
 permissions:
   # Required for storing benchmark results
@@ -45,7 +48,17 @@ jobs:
           key: ${{ runner.os }}-microbenchmarks
 
   benchmarks:
-    runs-on: warp-ubuntu-latest-x64-16x
+    name: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on:
+          - ubicloud-standard-4
+          - ubicloud-standard-8
+          - ubicloud-standard-16
+          - ubicloud-standard-30
+          - ubicloud-standard-60
+    runs-on: ${{ matrix.runs-on }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -74,15 +87,16 @@ jobs:
           name: src/bencher/benchmark-db.sh
           tool: 'customBiggerIsBetter'
           output-file-path: target/bencher/results/benchmark-data.json
-          github-token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           fail-on-alert: true
           summary-always: true
           max-items-in-chart: 30
-          auto-push: true
-          gh-repository: github.com/slatedb/slatedb-website
+          auto-push: false
+          # gh-repository: github.com/slatedb/slatedb-website
           benchmark-data-dir-path: performance/benchmarks/main
 
   microbenchmark-pprofs:
+    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
